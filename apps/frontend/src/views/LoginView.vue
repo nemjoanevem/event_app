@@ -68,7 +68,7 @@
           {{ $t('auth.register') }}
         </button>
 
-        <p v-if="auth.error" class="text-sm text-red-600">{{ auth.error }}</p>
+        <p v-if="auth.error" class="text-sm text-red-600">{{ $t(auth.error || 'errors.unknown') }}</p>
       </form>
     </div>
   </div>

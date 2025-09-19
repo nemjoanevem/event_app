@@ -23,7 +23,7 @@ export const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { redirectIfAuth: true },
+    meta: { redirectIfAuth: true, noNav: true },
   },
   // IMPORTANT: catch-all should not redirect to '/'
   { path: '/:pathMatch(.*)*', redirect: { name: 'login' } },

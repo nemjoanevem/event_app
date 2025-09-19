@@ -36,8 +36,8 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
       this.error = null;
       try {
-        const { data } = await http.get<User>('/user');
-        this.user = data;
+        const { data } = await http.get<{ data: User }>('/user');
+        this.user = data.data;
       } catch (e) {
         this.user = null;
       } finally {
@@ -50,9 +50,8 @@ export const useAuthStore = defineStore('auth', {
       this.error = null;
       try {
         await ensureCsrfCookie();
-
-        const { data } = await http.post<User>('/login', { email, password });
-        this.user = data;
+        const { data } = await http.post<{ data: User }>('/login', { email, password });
+        this.user = data.data;
       } catch (e: any) {
         // Keep message simple; backend localized message is not shown directly
         this.error = parseApiError(e, 'login');
@@ -87,9 +86,8 @@ export const useAuthStore = defineStore('auth', {
       this.error = null;
       try {
         await ensureCsrfCookie();
-        const { data } = await http.post<User>('/register', { name, email, password, password_confirmation });
-        console.log(data, "data");
-        this.user = data;
+        const { data } = await http.post<{ data: User }>('/register', { name, email, password, password_confirmation });
+        this.user = data.data;
       } catch (e: any) {
         // Keep message simple; backend localized message is not shown directly
         this.error = parseApiError(e, 'register');
@@ -97,16 +95,6 @@ export const useAuthStore = defineStore('auth', {
         throw e;
       } finally {
         this.loading = false;
-      }
-    },
-
-    async hydrateFromSession() {
-      try {
-        await ensureCsrfCookie();               // egyszer app startkor oké
-        const { data } = await http.get<User>('/user');
-        this.user = data;
-      } catch {
-        this.user = null;
       }
     },
 

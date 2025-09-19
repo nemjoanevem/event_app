@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui'
 
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
@@ -11,17 +12,27 @@ export const http = axios.create({
   },
 });
 
-http.interceptors.response.use(r => r, async (err) => {
-  if (axios.isAxiosError(err)) {
-    if (err.response?.status === 401) {
-      useAuthStore().$reset(); // kiléptetjük a klienst
+http.interceptors.request.use((config) => {
+  const ui = useUiStore()
+  ui.start()
+  return config
+})
+
+http.interceptors.response.use(
+  (res) => {
+    const ui = useUiStore()
+    ui.done()
+    return res;
+  },
+  (err) => {
+    if (axios.isAxiosError(err) && err.response?.status === 401) {
+      useAuthStore().$reset();
     }
-    if (err.response?.status === 419) {
-      await ensureCsrfCookie(); // CSRF lejárt – frissítünk
-    }
+    const ui = useUiStore()
+    ui.done()
+    return Promise.reject(err);
   }
-  return Promise.reject(err);
-});
+);
 
 function getCookie(name: string) {
   const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
