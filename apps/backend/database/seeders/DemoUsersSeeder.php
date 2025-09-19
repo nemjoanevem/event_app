@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Enums\RoleEnum;
 
 class DemoUsersSeeder extends Seeder
 {
@@ -20,21 +21,21 @@ class DemoUsersSeeder extends Seeder
             'name' => 'Admin User',
             'email' => 'admin@eventhub.local',
             'password' => Hash::make('Admin123!'),
-            'role' => 'admin',
+            'role' => RoleEnum::ADMIN,
         ]);
         
         User::factory()->create([
             'name' => 'Organizer User',
             'email' => 'org@eventhub.local',
             'password' => Hash::make('Org123!'),
-            'role' => 'organizer',
+            'role' => RoleEnum::ORGANIZER,
         ]);
 
         User::factory()->create([
             'name' => 'Regular User',
             'email' => 'user@eventhub.local',
             'password' => Hash::make('User123!'),
-            'role' => 'user',
+            'role' => RoleEnum::USER,
         ]);
     }
 }
