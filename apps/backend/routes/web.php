@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +14,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+Route::prefix('api')->group(function () {
+
+    // Public
+    Route::get('/ping', fn() => response()->json(['ok' => true]));
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+    // Authenticated
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/user', [AuthController::class, 'user']);
+    });
 });
