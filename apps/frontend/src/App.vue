@@ -6,6 +6,6 @@
 
 <style scoped></style>
 <script setup lang="ts">
-import PingButton from './components/PingButton.vue';
+import PingButton from '@/components/PingButton.vue';
 
 </script>

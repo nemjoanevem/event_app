@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { http, ensureCsrfCookie } from '@/lib/http';
+import { parseApiError } from '@/lib/errors';
 
 export type Role = 'user' | 'organizer' | 'admin';
 
@@ -23,7 +24,7 @@ export const useAuthStore = defineStore('auth', {
   state: (): State => ({
     user: null,
     loading: false,
-    error: '' as string
+    error: null,
   }),
   getters: {
     isAuthenticated: (s) => !!s.user,
@@ -48,14 +49,13 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
       this.error = null;
       try {
-        // Required for Sanctum session
         await ensureCsrfCookie();
 
         const { data } = await http.post<User>('/login', { email, password });
         this.user = data;
       } catch (e: any) {
         // Keep message simple; backend localized message is not shown directly
-        this.error = 'Login failed';
+        this.error = parseApiError(e, 'login');
         this.user = null;
         throw e;
       } finally {
@@ -86,13 +86,13 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
       this.error = null;
       try {
-        // Required for Sanctum session
         await ensureCsrfCookie();
         const { data } = await http.post<User>('/register', { name, email, password, password_confirmation });
+        console.log(data, "data");
         this.user = data;
       } catch (e: any) {
         // Keep message simple; backend localized message is not shown directly
-        this.error = 'Registration failed';
+        this.error = parseApiError(e, 'register');
         this.user = null;
         throw e;
       } finally {
@@ -100,23 +100,18 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async forgot(email: string) {
-      this.loading = true;
-      this.error = null;
+    async hydrateFromSession() {
       try {
-        // Required for Sanctum session
-        await ensureCsrfCookie();
-        await http.post('/forgot-password', { email });
-      } catch (e: any) {
-        this.error = 'Request failed';
-        throw e;
-      } finally {
-        this.loading = false;
+        await ensureCsrfCookie();               // egyszer app startkor oké
+        const { data } = await http.get<User>('/user');
+        this.user = data;
+      } catch {
+        this.user = null;
       }
     },
 
     clearFlash() {
-      this.error = ''
+      this.error = null;
     }
   }
 });
