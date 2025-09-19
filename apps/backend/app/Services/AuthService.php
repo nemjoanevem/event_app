@@ -14,7 +14,7 @@ class AuthService
 {
     protected function guard(): StatefulGuard
     {
-        return Auth::guard();
+        return Auth::guard('web');
     }
     
     /**
@@ -47,7 +47,7 @@ class AuthService
      */
     public function logout(): void
     {
-        $this->guard->logout();
+        $this->guard()->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
     }
