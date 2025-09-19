@@ -17,12 +17,12 @@
       <form v-if="tab==='login'" class="space-y-4" @submit.prevent="onLogin">
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.email') }}</label>
-          <input v-model="login.email" type="email" required
+          <input v-model="login.email" :disabled="auth.loading" type="email" required
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.password') }}</label>
-          <input v-model="login.password" type="password" required
+          <input v-model="login.password" :disabled="auth.loading" type="password" required
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
 
@@ -34,32 +34,31 @@
 
         <div class="text-sm text-gray-600 flex justify-between mt-2">
           <button type="button" class="underline" @click="switchTab('register')">{{ $t('auth.noAccount') }}</button>
-          <button type="button" class="underline" @click="switchTab('forgot')">{{ $t('auth.forgot') }}</button>
         </div>
 
-        <p v-if="auth.error" class="text-sm text-red-600">{{ auth.error }}</p>
+        <p v-if="auth.error" class="text-sm text-red-600">{{ $t(auth.error || 'errors.unknown') }}</p>
       </form>
 
       <!-- Register -->
       <form v-else-if="tab==='register'" class="space-y-4" @submit.prevent="onRegister">
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.name') }}</label>
-          <input v-model="register.name" type="text" required
+          <input v-model="register.name" :disabled="auth.loading" type="text" required
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.email') }}</label>
-          <input v-model="register.email" type="email" required
+          <input v-model="register.email" :disabled="auth.loading" type="email" required
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.password') }}</label>
-          <input v-model="register.password" type="password" required minlength="8"
+          <input v-model="register.password" :disabled="auth.loading" type="password" required minlength="8"
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
         <div>
           <label class="block text-sm mb-1">{{ $t('auth.passwordConfirm') }}</label>
-          <input v-model="register.password_confirmation" type="password" required minlength="8"
+          <input v-model="register.password_confirmation" :disabled="auth.loading" type="password" required minlength="8"
                  class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
         </div>
 
@@ -71,24 +70,6 @@
 
         <p v-if="auth.error" class="text-sm text-red-600">{{ auth.error }}</p>
       </form>
-
-      <!-- Forgot -->
-      <form v-else class="space-y-4" @submit.prevent="onForgot">
-        <div>
-          <label class="block text-sm mb-1">{{ $t('auth.email') }}</label>
-          <input v-model="forgotEmail" type="email" required
-                class="w-full border rounded-xl px-4 py-2 outline-none focus:ring" />
-        </div>
-
-        <button type="submit"
-                :disabled="auth.loading"
-                class="w-full rounded-xl py-2 bg-gray-900 text-white hover:opacity-90 disabled:opacity-60">
-          {{ $t('auth.sendReset') }}
-        </button>
-
-        <!-- error -->
-        <p v-if="auth.error" class="text-sm text-red-600">{{ auth.error }}</p>
-      </form>
     </div>
   </div>
 </template>
@@ -96,15 +77,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '@/stores/auth';
 
 /** UI tab selection: login / register / forgot */
-const tab = ref<'login' | 'register' | 'forgot'>('login')
+const tab = ref<'login' | 'register'>('login')
 
-/** Local form state for login/register/forgot. */
+/** Local form state for login/register. */
 const login = ref({ email: '', password: '' })
 const register = ref({ name: '', email: '', password: '', password_confirmation: '' })
-const forgotEmail = ref('')
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -112,22 +92,16 @@ const router = useRouter()
 /** Handle login submit. */
 const onLogin = async () => {
   await auth.login(login.value)
-  await router.push({ name: 'PostList' })
+  await router.push({ name: 'home' })
 }
 
 /** Handle registration submit. */
 const onRegister = async () => {
   await auth.register(register.value)
-  await router.push({ name: 'PostList' })
+  await router.push({ name: 'home' })
 }
 
-/** Handle forgot password submit. */
-const onForgot = async () => {
-  await auth.forgot(forgotEmail.value)
-  // UX: we keep the user on the tab; backend email config may be missing in dev
-}
-
-const switchTab = (t: 'login'|'register'|'forgot') => {
+const switchTab = (t: 'login'|'register') => {
   tab.value = t
   auth.clearFlash() // reset success/error when switching tabs
 }

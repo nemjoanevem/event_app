@@ -34,5 +34,18 @@
     "save": "Save",
     "cancel": "Cancel",
     "loading": "Loading..."
+  },
+  "errors": {
+    "timeout": "Request timed out. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "csrf": "Security error. Please refresh the page and try again.",
+    "forbidden": "You do not have permission to access this resource.",
+    "notFound": "The requested resource was not found.",
+    "server": "An unexpected error occurred. Please try again later.",
+    "generic": "An error occurred. Please try again.",
+    "unknown": "An unknown error occurred.",
+    "failed": "Request failed. Please try again.",
+    "invalidCredentials": "Invalid email or password."
   }
 }
