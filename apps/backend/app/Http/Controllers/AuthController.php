@@ -6,6 +6,8 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -41,6 +43,23 @@ class AuthController extends Controller
         return response()->json([
             'message' => trans('auth.logged_out'),
         ]);
+    }
+
+    /**
+     * Handle user registration request.
+     *
+     * Validates the incoming registration data and creates a new user account.
+     *
+     * @param RegisterRequest $request The validated registration request instance.
+     * @return JsonResponse The JSON response indicating success or failure of registration.
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $user = $this->auth->register($data);
+        return (new UserResource($user))
+            ->response()
+            ->setStatusCode(201);
     }
 
     

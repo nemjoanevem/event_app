@@ -14,15 +14,13 @@ use App\Http\Controllers\AuthController;
 |
 */
 
-Route::prefix('api')->group(function () {
+// Public
+Route::get('/ping', fn() => response()->json(['ok' => true]));
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 
-    // Public
-    Route::get('/ping', fn() => response()->json(['ok' => true]));
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-
-    // Authenticated
-    Route::middleware(['auth:sanctum'])->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/user', [AuthController::class, 'user']);
-    });
+// Authenticated
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
 });
