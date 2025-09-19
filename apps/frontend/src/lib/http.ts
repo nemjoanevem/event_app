@@ -1,9 +1,32 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/auth';
 
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
   withCredentials: true, // send session cookie
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') || '',
+  },
 });
+
+http.interceptors.response.use(r => r, async (err) => {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 401) {
+      useAuthStore().$reset(); // kiléptetjük a klienst
+    }
+    if (err.response?.status === 419) {
+      await ensureCsrfCookie(); // CSRF lejárt – frissítünk
+    }
+  }
+  return Promise.reject(err);
+});
+
+function getCookie(name: string) {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 // Helper: ensure Sanctum CSRF cookie before stateful POSTs
 export async function ensureCsrfCookie() {
