@@ -37,7 +37,7 @@ class EventController extends Controller
      * @param  \App\Models\Event  $event  The event instance to display.
      * @return \Illuminate\Http\Response
      */
-    public function show(Event $event)
+    public function show(Event $event, Request $request)
     {
         if (! $this->service->canView($request->user(), $event)) {
             abort(404);
