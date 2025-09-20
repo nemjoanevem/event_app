@@ -17,7 +17,7 @@ class EventPolicy
 
     public function view(User $user, Event $event): bool
     {
-        if ($event->status === 'published') {
+        if (in_array($event->status, ['published', 'cancelled'], true)) {
             return true;
         }
 

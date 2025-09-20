@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\BookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,7 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('throt
 
 Route::get('/events', [EventController::class, 'index']);
 Route::get('/events/{event}', [EventController::class, 'show']);
+Route::post('/events/{event}/bookings', [BookingController::class, 'store']);
 
 // Authenticated
 Route::middleware('auth')->group(function () {

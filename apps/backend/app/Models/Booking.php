@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Event;
+use App\Models\User;
+
 
 class Booking extends Model
 {
@@ -12,12 +16,18 @@ class Booking extends Model
     protected static function booted(): void
     {
         static::creating(function (Booking $booking) {
-            if (empty($booking->start_at)) {
-                $booking->start_at = optional($booking->event)->starts_at;
+            // Fill start_at from event if missing
+            if (empty($booking->start_at) && $booking->event) {
+                $booking->start_at = $booking->event->starts_at;
             }
+
+            // Compute total price safely if missing
             if (is_null($booking->total_price)) {
-                $price = optional($booking->event)->price ?? 0;
-                $booking->total_price = bcmul((string)$price, (string)($booking->quantity ?? 1), 2);
+                $price = (float) (optional($booking->event)->price ?? 0);
+                $qty   = (int)   ($booking->quantity ?? 1);
+
+                // two decimals, '.' as decimal separator, no thousands separator
+                $booking->total_price = number_format($price * $qty, 2, '.', '');
             }
         });
     }
