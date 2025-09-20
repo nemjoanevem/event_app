@@ -9,6 +9,19 @@ class Booking extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Booking $booking) {
+            if (empty($booking->start_at)) {
+                $booking->start_at = optional($booking->event)->starts_at;
+            }
+            if (is_null($booking->total_price)) {
+                $price = optional($booking->event)->price ?? 0;
+                $booking->total_price = bcmul((string)$price, (string)($booking->quantity ?? 1), 2);
+            }
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -17,6 +30,8 @@ class Booking extends Model
     protected $fillable = [
         'user_id',
         'event_id',
+        'guest_name',
+        'guest_email',
         'quantity',
         'total_price',
         'start_at',

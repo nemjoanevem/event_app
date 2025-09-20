@@ -63,25 +63,32 @@ class Event extends Model
     /**
      * Sum of already booked quantity by a given user for this event.
      */
-    public function bookedQuantityByUser(User|int $user): int
+    public function bookedQuantityForIdentity(?int $userId = null, ?string $guestEmail = null): int
     {
-        $userId = $user instanceof User ? $user->id : $user;
-        return (int) $this->bookings()
-            ->where('user_id', $userId)
-            ->where('status', 'confirmed')
-            ->sum('quantity');
+        $q = $this->bookings()->where('status', 'confirmed');
+
+        if ($userId) {
+            $q->where('user_id', $userId);
+        } elseif ($guestEmail) {
+            $q->whereNull('user_id')
+            ->where('guest_email', $guestEmail);
+        } else {
+            return 0;
+        }
+
+        return (int) $q->sum('quantity');
     }
 
     /**
      * Remaining tickets this user can still book, based on max_tickets_per_user.
      */
-    public function remainingUserQuota(User|int $user): int
+    public function remainingQuotaForIdentity(?int $userId = null, ?string $guestEmail = null): int
     {
         $max = (int) ($this->max_tickets_per_user ?? 0);
         if ($max <= 0) {
-            return 0; // if somehow set to 0, block
+            return 0;
         }
-        $already = $this->bookedQuantityByUser($user);
+        $already = $this->bookedQuantityForIdentity($userId, $guestEmail);
         return max(0, $max - $already);
     }
 

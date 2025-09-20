@@ -19,12 +19,16 @@ return new class extends Migration
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
+                ->nullable()
                 ->constrained()
-                ->onDelete('cascade');
+                ->nullOnDelete();
 
             $table->foreignId('event_id')
                 ->constrained()
                 ->onDelete('cascade');
+
+            $table->string('guest_name', 255)->nullable();
+            $table->string('guest_email', 255)->nullable();
 
             $table->unsignedInteger('quantity')->default(1);
             $table->decimal('total_price', 10, 2)->default(0);
@@ -35,6 +39,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['event_id', 'status']);
+            $table->index(['event_id', 'user_id']);
+            $table->index(['event_id', 'guest_email']);
         });
     }
 

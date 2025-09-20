@@ -18,21 +18,29 @@ class BookingFactory extends Factory
      */
     public function definition()
     {
-        $event = Event::inRandomOrder()->first() ?? Event::factory()->published()->create();
+        $event = Event::where('status', 'published')
+            ->where('starts_at', '>', now())
+            ->inRandomOrder()
+            ->first()
+            ?? Event::factory()->published()->create(['starts_at' => now()->addDays(7)]);
 
-        $user = User::inRandomOrder()->first() ?? User::factory()->create();
+        $isGuest = $this->faker->boolean(40); // 40% guest
 
-        $quantity = $this->faker->numberBetween(1, 4);
-        $unitPrice = $event->price ?? 0;
-        $total = $quantity * $unitPrice;
+        $userId = $isGuest ? null : (User::inRandomOrder()->value('id') ?? User::factory()->create()->id);
+
+        $quantity = $this->faker->numberBetween(1, 3);
+        $unit = $event->price ?? 0;
+        $total = $quantity * $unit;
 
         return [
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-            'quantity' => $quantity,
+            'user_id'     => $userId,
+            'event_id'    => $event->id,
+            'guest_name'  => $isGuest ? $this->faker->name() : null,
+            'guest_email' => $isGuest ? $this->faker->safeEmail() : null,
+            'quantity'    => $quantity,
             'total_price' => $total,
-            'start_at' => $event->starts_at, // keep historical value
-            'status' => 'confirmed',
+            'start_at'    => $event->starts_at,
+            'status'      => 'confirmed',
         ];
     }
 }
