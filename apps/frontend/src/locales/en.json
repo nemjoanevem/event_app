@@ -16,6 +16,7 @@
     "successLogin": "You are now signed in.",
     "successRegister": "Registration successful. You are now signed in.",
     "successReset": "If your email exists, a reset link has been sent.",
+    "continueAsGuest": "Continue as Guest",
     "errors": {
       "required": "This field is required.",
       "email": "Please enter a valid email address.",

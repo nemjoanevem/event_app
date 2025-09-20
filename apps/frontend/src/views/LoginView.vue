@@ -11,6 +11,8 @@
         <button class="flex-1 py-2 rounded-xl border"
                 :class="tab==='register' ? 'bg-gray-900 text-white' : 'bg-white'"
                 @click="switchTab('register')">{{ $t('auth.register') }}</button>
+        <button class="flex-1 py-2 rounded-xl border"
+          @click="continueAsGuest">{{ $t('auth.continueAsGuest') }}</button>
       </div>
 
       <!-- Login -->
@@ -99,6 +101,12 @@ const onLogin = async () => {
 const onRegister = async () => {
   await auth.register(register.value)
   await router.push({ name: 'home' })
+}
+
+function continueAsGuest() {
+  // Clear any previous flash and just go to posts without auth
+  auth.clearFlash?.()
+  router.push({ name: 'home' })
 }
 
 const switchTab = (t: 'login'|'register') => {
