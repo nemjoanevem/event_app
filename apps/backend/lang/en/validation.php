@@ -179,6 +179,20 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'title' => 'title',
+        'description' => 'description',
+        'starts_at' => 'start date',
+        'location' => 'location',
+        'capacity' => 'capacity',
+        'category' => 'category',
+        'status' => 'status',
+        'price' => 'price',
+        'max_tickets_per_user' => 'max tickets per user',
+        'email' => 'email address',
+        'password' => 'password',
+        'password_confirmation' => 'password confirmation',
+        'name' => 'name',
+    ],
 
 ];

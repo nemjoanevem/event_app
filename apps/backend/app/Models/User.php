@@ -23,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -44,6 +45,21 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'role' => RoleEnum::class,
     ];
+
+    public function isAdmin(): bool
+    {
+        return $this->role === RoleEnum::ADMIN;
+    }
+
+    public function isOrganizer(): bool
+    {
+        return $this->role === RoleEnum::ORGANIZER;
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === RoleEnum::USER;
+    }
 
     public function bookings()
     {
