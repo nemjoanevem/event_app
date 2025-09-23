@@ -17,44 +17,58 @@ class EventService
         $q = Event::query()
             ->withCount(['bookings as booked_quantity' => function ($w) {
                 $w->where('status', 'confirmed')
-                  ->select(\DB::raw('coalesce(sum(quantity),0)'));
+                ->select(\DB::raw('coalesce(sum(quantity),0)'));
             }])
+            // Date range filter on starts_at
+            ->when(!empty($filters['from']) || !empty($filters['to']), function ($qq) use ($filters) {
+                $from = !empty($filters['from']) ? \Carbon\Carbon::parse($filters['from'])->startOfDay() : null;
+                $to   = !empty($filters['to'])   ? \Carbon\Carbon::parse($filters['to'])->endOfDay()   : null;
+
+                if ($from && $to) {
+                    if ($from->gt($to)) { [$from, $to] = [$to, $from]; } // swap if reversed
+                    $qq->whereBetween('starts_at', [$from, $to]);
+                } elseif ($from) {
+                    $qq->where('starts_at', '>=', $from);
+                } elseif ($to) {
+                    $qq->where('starts_at', '<=', $to);
+                }
+            })
             ->orderBy('starts_at', 'asc');
 
         // Role-based visibility
         if ($user?->isAdmin()) {
             // admin: no base restriction
         } elseif ($user?->isOrganizer()) {
-            // organizer: all published+cancelled + own drafts
+            // organizer: only published + own drafts/cancelled
             $q->where(function ($w) use ($user) {
-                $w->whereIn('status', ['published', 'cancelled'])
-                  ->orWhere(function ($w2) use ($user) {
-                      $w2->where('status', 'draft')->where('created_by', $user->id);
-                  });
+                $w->where('status', 'published')
+                ->orWhere(function ($w2) use ($user) {
+                    $w2->where('created_by', $user->id)
+                        ->whereIn('status', ['draft', 'cancelled']);
+                });
             });
         } else {
-            // user or guest: only published+cancelled
-            $q->whereIn('status', ['published', 'cancelled']);
+            // user or guest: only published
+            $q->where('status', 'published');
         }
 
-        // Optional filters
-        if (!empty($filters['status'])) {
-            $q->where('status', $filters['status']);
-        }
-        if (!empty($filters['category'])) {
-            $q->where('category', $filters['category']);
-        }
+        // Full-text like search across key fields
         if (!empty($filters['q'])) {
-            $term = $filters['q'];
+            $term = trim($filters['q']);
             $q->where(function ($w) use ($term) {
                 $w->where('title', 'ilike', "%{$term}%")
-                  ->orWhere('description', 'ilike', "%{$term}%")
-                  ->orWhere('location', 'ilike', "%{$term}%");
+                ->orWhere('description', 'ilike', "%{$term}%")
+                ->orWhere('location', 'ilike', "%{$term}%")
+                ->orWhere('category', 'ilike', "%{$term}%");
             });
         }
 
-        return $q->paginate($filters['per_page'] ?? 15);
+        $perPage = (int)($filters['per_page'] ?? 15);
+        $perPage = max(1, min($perPage, 100));
+
+        return $q->paginate($perPage);
     }
+
 
     public function canView(?User $user, Event $event): bool
     {

@@ -65,7 +65,7 @@ class EventPolicyTest extends TestCase
         $this->assertTrue($policy->changeStatus($admin, $event));
     }
 
-    public function test_view_published_or_cancelled_is_open_but_draft_is_restricted(): void
+    public function test_view_published_is_open_but_draft_or_cancelled_is_restricted(): void
     {
         $policy = new EventPolicy();
 
@@ -77,9 +77,9 @@ class EventPolicyTest extends TestCase
         $published = $this->makeEvent($owner, 'published');
         $cancelled = $this->makeEvent($owner, 'cancelled');
 
-        // Anyone authenticated can view published/cancelled
+        // Anyone authenticated can view published
         $this->assertTrue($policy->view($other, $published));
-        $this->assertTrue($policy->view($other, $cancelled));
+        $this->assertFalse($policy->view($other, $cancelled));
 
         // Draft only for owner or admin
         $this->assertTrue($policy->view($owner, $draft));

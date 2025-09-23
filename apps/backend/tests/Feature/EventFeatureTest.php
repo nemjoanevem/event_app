@@ -37,7 +37,7 @@ class EventFeatureTest extends TestCase
         ], $overrides));
     }
 
-    public function test_guest_can_list_published_and_cancelled_but_not_drafts(): void
+    public function test_guest_can_list_published_but_not_drafts_and_cancelled(): void
     {
         // Arrange
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
@@ -53,10 +53,10 @@ class EventFeatureTest extends TestCase
         $res->assertOk()
             ->assertJsonMissing(['status' => 'draft'])
             ->assertJsonFragment(['status' => 'published'])
-            ->assertJsonFragment(['status' => 'cancelled']);
+            ->assertJsonMissing(['status' => 'cancelled']);
     }
 
-    public function test_organizer_sees_published_and_cancelled_and_own_drafts_only(): void
+    public function test_organizer_sees_published_and_own_cancelled_and_own_drafts_only(): void
     {
         // Arrange
         $organizerA = $this->makeUser(\App\Enums\RoleEnum::ORGANIZER);
@@ -68,6 +68,7 @@ class EventFeatureTest extends TestCase
         $this->makeEvent($organizerA, 'draft');
 
         // Organizer B draft (should NOT be visible to A)
+        $this->makeEvent($organizerB, 'cancelled');
         $this->makeEvent($organizerB, 'draft');
 
         // Act
@@ -81,7 +82,18 @@ class EventFeatureTest extends TestCase
 
         // Assert published & cancelled are present (for anyone)
         $this->assertTrue($items->contains(fn ($e) => ($e['status'] ?? null) === 'published'));
-        $this->assertTrue($items->contains(fn ($e) => ($e['status'] ?? null) === 'cancelled'));
+
+        // Assert A's own cancelled is visible
+        $this->assertTrue(
+            $items->contains(fn ($e) => ($e['status'] ?? null) === 'cancelled' && ($e['createdBy'] ?? null) === $organizerA->id),
+            'Organizer should see own cancelled event.'
+        );
+
+        // Assert B's cancelled is NOT visible
+        $this->assertFalse(
+            $items->contains(fn ($e) => ($e['status'] ?? null) === 'cancelled' && ($e['createdBy'] ?? null) === $organizerB->id),
+            "Organizer should NOT see other organizer's cancelled event."
+        );
 
         // Assert A's own draft is visible
         $this->assertTrue(
@@ -115,7 +127,7 @@ class EventFeatureTest extends TestCase
             ->assertJsonFragment(['status' => 'draft']);
     }
 
-    public function test_guest_can_view_published_or_cancelled_but_not_draft(): void
+    public function test_guest_can_view_published_but_not_draft_or_cancelled(): void
     {
         $org = $this->makeUser(RoleEnum::ORGANIZER);
         $published = $this->makeEvent($org, 'published');
@@ -128,7 +140,7 @@ class EventFeatureTest extends TestCase
 
         $this->withHeaders(['Accept' => 'application/json'])
             ->get("/events/{$cancelled->id}")
-            ->assertOk();
+            ->assertNotFound();
 
         // Draft should be hidden from guests -> 404
         $this->withHeaders(['Accept' => 'application/json'])
