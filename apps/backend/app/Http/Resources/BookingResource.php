@@ -11,17 +11,19 @@ class BookingResource extends JsonResource
      */
     public function toArray($request): array
     {
+        $name  = $this->guest_name  ?: optional($this->user)->name;
+        $email = $this->guest_email ?: optional($this->user)->email;
+
         return [
             'id'         => $this->id,
             'eventId'    => $this->event_id,
-            'userId'     => $this->user_id,
-            'guestName'  => $this->guest_name,
-            'guestEmail' => $this->guest_email,
+            'eventTitle' => optional($this->event)->title,
             'quantity'   => (int) $this->quantity,
-            'totalPrice' => (string) $this->total_price,
-            'startAt'    => $this->start_at?->toIso8601String(),
-            'status'     => $this->status,
-            'createdAt'  => $this->created_at?->toIso8601String(),
+            'totalPrice' => $this->total_price !== null ? (string) $this->total_price : null,
+            'startsAt'   => optional($this->event?->starts_at)->toIso8601String(),
+            'name'       => $name,
+            'email'      => $email,
+            'createdAt'  => optional($this->created_at)->toIso8601String(),
         ];
     }
 }

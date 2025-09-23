@@ -7,9 +7,48 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BookingService
 {
+
+    public function list(User $user, array $filters = []): LengthAwarePaginator
+    {
+        $q = Booking::query()
+            ->with(['event:id,title,starts_at', 'user:id,name,email'])
+            ->orderByDesc('id');
+
+        // Scope by role
+        if ($user->isAdmin()) {
+            // admins see everything
+        } else {
+            // users/organizers see their own bookings (booked as themselves)
+            $q->where('user_id', $user->id);
+        }
+
+        // Search by event title OR user/guest name/email
+        if (!empty($filters['q'])) {
+            $term = trim($filters['q']);
+            $q->where(function (Builder $w) use ($term) {
+                $w->whereHas('event', function (Builder $we) use ($term) {
+                    $we->where('title', 'ilike', "%{$term}%");
+                })
+                ->orWhere('guest_name', 'ilike', "%{$term}%")
+                ->orWhere('guest_email', 'ilike', "%{$term}%")
+                ->orWhereHas('user', function (Builder $wu) use ($term) {
+                    $wu->where('name', 'ilike', "%{$term}%")
+                       ->orWhere('email', 'ilike', "%{$term}%");
+                });
+            });
+        }
+
+        $perPage = (int)($filters['per_page'] ?? 15);
+        $perPage = max(1, min($perPage, 100));
+
+        return $q->paginate($perPage);
+    }
+
     /**
      * Create a booking under transaction and row-level lock on the event.
      *
