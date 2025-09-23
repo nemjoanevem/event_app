@@ -17,5 +17,7 @@ return [
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
     'logged_out' => 'You have been logged out successfully.',
+    'invalid_credentials' => 'Invalid credentials.',
+    'user_disabled' => 'Your account has been disabled. Please contact support.',
 
 ];
