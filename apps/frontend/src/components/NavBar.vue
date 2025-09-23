@@ -10,11 +10,11 @@
           to="/tickets"
           class="text-sm hover:underline"
         >
-          {{ $t('nav.myTickets') }}
+          {{ ticketsLabel }}
         </router-link>
         <router-link
           v-if="showMyEvents"
-          to="/home"
+          to="/my-events"
           class="text-sm hover:underline"
         >
           {{ $t('nav.myEvents') }}
@@ -58,9 +58,11 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const auth = useAuthStore()
+const { t } = useI18n()
 
 // Prefer a friendly display name; fallback to email if needed
 const displayName = computed(() => auth.user?.name || auth.user?.email)
@@ -70,6 +72,12 @@ const role = computed(() => auth.user?.role) // 'admin' | 'organizer' | 'user' |
 const showTickets = computed(() => auth.isAuthenticated) // all signed-in roles
 const showMyEvents  = computed(() => role.value === 'admin' || role.value === 'organizer')
 const showUsers     = computed(() => role.value === 'admin')
+
+const ticketsLabel = computed(() =>
+  role.value === 'admin'
+    ? String(t('nav.tickets'))
+    : String(t('nav.myTickets'))
+)
 
 const onLogout = async () => {
   // Log out and redirect to Login

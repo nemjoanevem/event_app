@@ -180,14 +180,14 @@
     </div>
 
     <!-- Create/Edit modal -->
-    <dialog ref="eventDialog" class="rounded-xl p-0 w-full max-w-xl">
+    <dialog ref="eventDialog" class="rounded-xl p-0 w-full max-w-xl centered">
       <form class="p-5 space-y-4" @submit.prevent="saveEvent">
         <h3 class="text-lg font-semibold">
           {{ editing ? $t('home.editEvent') : $t('home.newEvent') }}
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div class="md:col-span-2">
             <label class="block text-sm mb-1">{{ $t('home.fields.title') }}</label>
             <input v-model="form.title" type="text" class="w-full border rounded-lg px-3 py-2" required />
           </div>
@@ -210,6 +210,10 @@
           <div>
             <label class="block text-sm mb-1">{{ $t('home.fields.price') }}</label>
             <input v-model.number="form.price" type="number" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">{{ $t('home.fields.maxTicketsPerUser') }}</label>
+            <input v-model.number="form.maxTicketsPerUser" type="number" min="0" step="1" class="w-full border rounded-lg px-3 py-2" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm mb-1">{{ $t('home.fields.description') }}</label>
@@ -314,6 +318,7 @@ interface EventItem {
   status?: 'draft' | 'published' | 'cancelled'
   price?: string | number | null
   availableSeats?: number | null
+  maxTicketsPerUser?: number | null
   userId?: number // owner (may be absent in some payloads)
 }
 
@@ -385,7 +390,8 @@ function syncQuery() {
       page: page.value !== 1 ? String(page.value) : undefined,
       from: fromDate.value || undefined,
       to: toDate.value || undefined,
-      per_page: String(perPage.value) // ha már benne van nálad
+      per_page: String(perPage.value), // ha már benne van nálad
+      own: props.ownOnly ? '1' : undefined
     }
   })
 }
@@ -478,6 +484,13 @@ watch(() => route.query.to, (val) => {
      if (fromDate.value && toDate.value) fetchEvents()
    }
 })
+watch(() => props.ownOnly, (val, old) => {
+   if (val !== old) {
+     page.value = 1
+     syncQuery()
+     fetchEvents()
+   }
+})
 
 // ——— Create / Edit ———
 const eventDialog = ref<HTMLDialogElement | null>(null)
@@ -499,6 +512,7 @@ function openEdit(e: EventItem) {
     category: e.category || '',
     capacity: null,
     price: e.price ?? null,
+    maxTicketsPerUser: e.maxTicketsPerUser ?? null,
     description: e.description || ''
   }
   eventDialog.value?.showModal()

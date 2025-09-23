@@ -53,7 +53,8 @@
       "category": "Category",
       "capacity": "Capacity",
       "price": "Price",
-      "description": "Description"
+      "description": "Description",
+      "maxTicketsPerUser": "Max tickets per user (0 = no limit)"
     },
     "cancel": "Cancel",
     "save": "Save",
@@ -66,6 +67,18 @@
       "published": "Published",
       "cancelled": "Cancelled"
     }
+  },
+  "tickets": {
+    "searchLabel": "Search",
+    "searchPlaceholder": "Event title, name or email…",
+    "searchHint": "Type to filter. Results are paginated.",
+    "noResults": "No tickets found",
+    "event": "Event",
+    "quantity": "Quantity",
+    "totalPrice": "Total price",
+    "startsAt": "Starts at",
+    "userName": "User name",
+    "userEmail": "User email"
   },
   "users": {
     "title": "Users",
@@ -90,7 +103,11 @@
   "nav": {
     "logout": "Sign out",
     "login": "Sign in",
-    "welcome": "Welcome, {name}"
+    "welcome": "Welcome, {name}",
+    "tickets": "Tickets",
+    "myTickets": "My tickets",
+    "myEvents": "My events",
+    "users": "Users"
   },
   "common": {
     "save": "Save",
