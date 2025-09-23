@@ -24,7 +24,68 @@
     }
   },
   "home": {
-    "title": "Home"
+    "title": "Events",
+    "createEvent": "Create event",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Title/location/category…",
+    "searchHint": "Type to filter. Results are paginated.",
+    "noResults": "No events found",
+    "tryDifferentSearch": "Try a different search or clear filters.",
+    "book": "Book",
+    "edit": "Edit",
+    "delete": "Delete",
+    "availableSeats": "Available seats",
+    "price": "Price",
+    "prev": "Previous",
+    "next": "Next",
+    "perPage": "Items per page",
+    "pageXofY": "Page {x} of {y}",
+    "editEvent": "Edit event",
+    "newEvent": "New event",
+    "bookingError": "Failed to book ticket. Please try again.",
+    "bookingSuccess": "Successfully booked ticket! Total price: {amount}",
+    "from": "From",
+    "to": "To",
+    "fields": {
+      "title": "Title",
+      "startsAt": "Starts at",
+      "location": "Location",
+      "category": "Category",
+      "capacity": "Capacity",
+      "price": "Price",
+      "description": "Description"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "bookTicket": "Book ticket",
+    "quantity": "Quantity",
+    "confirm": "Confirm",
+    "confirmDelete": "Are you sure you want to delete this event?",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "cancelled": "Cancelled"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name or email…",
+    "searchHint": "Type to filter by name or email.",
+    "noResults": "No users found",
+    "name": "Name",
+    "email": "Email",
+    "createdAt": "Created at",
+    "status": "Status",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "actions": "Actions",
+    "enable": "Enable",
+    "disable": "Disable",
+    "confirmEnable": "Enable this user?",
+    "confirmDisable": "Disable this user?",
+    "toastEnabled": "User has been enabled.",
+    "toastDisabled": "User has been disabled."
   },
   "nav": {
     "logout": "Sign out",
@@ -34,7 +95,10 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "myTickets": "My tickets",
+    "myEvents": "My events",
+    "users": "Users"
   },
   "errors": {
     "timeout": "Request timed out. Please try again.",
