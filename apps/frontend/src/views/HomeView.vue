@@ -2,7 +2,7 @@
   <main class="max-w-5xl mx-auto p-6">
     <!-- Page header -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-semibold">{{ $t('home.title') }}</h1>
+      <h1 class="text-2xl font-semibold">{{ pageTitle  }}</h1>
 
       <!-- Create button for organizer/admin -->
       <button
@@ -292,8 +292,12 @@
 </template>
 
 <script setup lang="ts">
-// Home page with server-side paginated event list + simple search column.
-// Only frontend is implemented here; API endpoints are wired but backend messages are not surfaced.
+const props = defineProps<{ ownOnly?: boolean }>()
+
+const pageTitle = computed(() =>
+  props.ownOnly ? String($t('nav.myEvents')) : String($t('home.title'))
+)
+
 import { onMounted, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { http } from '@/lib/http'
@@ -406,7 +410,16 @@ async function fetchEvents() {
       params.from = fromDate.value
       params.to = toDate.value
     }
-    const { data } = await http.get('/events', { params })
+    const { data } = await http.get('/events', {
+      params: {
+        page: page.value,
+        per_page: perPage.value,
+        q: q.value || undefined,
+        from: fromDate.value || undefined,
+        to: toDate.value || undefined,
+        own: props.ownOnly ? 1 : undefined
+      }
+    })
     events.value = data.data || []
     meta.value = data.meta || null
   } finally {

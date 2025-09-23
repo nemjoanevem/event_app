@@ -35,6 +35,11 @@ class EventService
             })
             ->orderBy('starts_at', 'asc');
 
+        // Filter to own events only (for organizer/admin)
+        if (!empty($filters['own']) && $user) {
+            $q->where('created_by', $user->id);
+        }
+
         // Role-based visibility
         if ($user?->isAdmin()) {
             // admin: no base restriction
