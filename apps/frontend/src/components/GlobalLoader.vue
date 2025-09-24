@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div v-if="ui.isLoading" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+    <div v-if="ui.isLoading" class="fixed inset-0 z-999 bg-black/40 backdrop-blur-sm flex items-center justify-center">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
     </div>
   </transition>

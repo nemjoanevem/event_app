@@ -128,6 +128,9 @@
     "generic": "An error occurred. Please try again.",
     "unknown": "An unknown error occurred.",
     "failed": "Request failed. Please try again.",
-    "invalidCredentials": "Invalid email or password."
+    "invalidCredentials": "Invalid email or password.",
+    "unprocessable": "The request could not be processed. Please check your input.",
+    "locked": "This resource is currently disabled.",
+    "tooManyRequests": "Too many requests. Please slow down."
   }
 }

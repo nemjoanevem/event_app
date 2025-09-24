@@ -53,6 +53,15 @@ export function parseApiError(err: unknown, context: ErrorContext = 'generic'): 
   // 404 Not found
   if (status === 404) return 'errors.notFound';
 
+  // 422 Unprocessable Entity (other than validation)
+  if (status === 422) return 'errors.unprocessable';
+
+  // 423 Locked (e.g. resource disabled)
+  if (status === 423) return 'errors.locked';
+
+  // 429 Too Many Requests
+  if (status === 429) return 'errors.tooManyRequests';
+
   // 5xx Server error
   if (status && status >= 500) return 'errors.server';
 

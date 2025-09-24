@@ -62,13 +62,16 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath }, replace: true };
   }
 
+  if (to.meta.requiresAuth && auth.isDisabled) {
+    return { name: 'login', replace: true };
+  }
+
   if (to.meta.redirectIfAuth && auth.isAuthenticated) {
     return { name: 'home', replace: true };
   }
 
   if (to.meta.roles?.length) {
     if (!auth.isAuthenticated || !auth.hasAnyRole(to.meta.roles)) {
-      // optional: add a /403 route later
       return { name: 'home', replace: true };
     }
   }

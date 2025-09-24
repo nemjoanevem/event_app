@@ -20,16 +20,31 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (res) => {
-    const ui = useUiStore()
-    ui.done()
+    const ui = useUiStore();
+    ui.done();
     return res;
   },
-  (err) => {
-    if (axios.isAxiosError(err) && err.response?.status === 401) {
-      useAuthStore().$reset();
+  async (err) => {
+    const ui = useUiStore();
+    ui.done();
+
+    if (!axios.isAxiosError(err) || !err.response) {
+      return Promise.reject(err);
     }
-    const ui = useUiStore()
-    ui.done()
+
+    const status = err.response.status;
+    const auth = useAuthStore();
+
+    if (status === 401) {
+      auth.$reset();
+    } else if (status === 423) {
+      try {
+        await auth.fetchUser();
+      } catch {
+      }
+      (err as any).userFriendlyMessage = 'errors.locked';
+    }
+
     return Promise.reject(err);
   }
 );

@@ -9,6 +9,7 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  enabled: boolean;
 }
 
 interface State {
@@ -28,6 +29,7 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (s) => !!s.user,
+    isDisabled: (s) => !!s.user && s.user.enabled === false,
     hasRole: (s) => (role: Role) => s.user?.role === role,
     hasAnyRole: (s) => (roles: Role[]) => !!s.user && roles.includes(s.user.role),
   },
