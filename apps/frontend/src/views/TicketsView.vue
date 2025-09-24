@@ -92,6 +92,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { http } from '@/lib/http'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date';
 
 interface TicketRow {
   id: number
@@ -137,10 +138,6 @@ function goTo(p: number) {
 
 function syncQuery() {
   router.replace({ query: { ...route.query, q: q.value || undefined, page: page.value !== 1 ? String(page.value) : undefined } })
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString()
 }
 
 async function fetchTickets() {

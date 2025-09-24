@@ -307,6 +307,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { http } from '@/lib/http'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date';
 
 interface EventItem {
   id: number
@@ -394,12 +395,6 @@ function syncQuery() {
       own: props.ownOnly ? '1' : undefined
     }
   })
-}
-
-function formatDate(iso: string) {
-  // Basic local date formatting
-  const d = new Date(iso)
-  return d.toLocaleString()
 }
 
 function statusClass(status?: string) {

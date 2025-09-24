@@ -120,6 +120,7 @@ import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { http } from '@/lib/http'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date';
 
 interface AdminUserRow {
   id: number
@@ -162,11 +163,6 @@ function goTo(p: number) {
 
 function syncQuery() {
   router.replace({ query: { ...route.query, q: q.value || undefined, page: page.value !== 1 ? String(page.value) : undefined } })
-}
-
-function formatDate(iso?: string) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString()
 }
 
 async function fetchUsers() {

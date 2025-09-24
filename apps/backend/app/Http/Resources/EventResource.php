@@ -28,9 +28,6 @@ class EventResource extends JsonResource
             'maxTicketsPerUser' => $this->max_tickets_per_user,
 
             'availableSeats' => $this->availableSeats(),
-            /*'remainingUserQuota' => $request->user()
-                ? $this->remainingUserQuota($request->user()->id)
-                : null,*/
             'bookedQuantity' => $this->when(isset($this->booked_quantity), (int)$this->booked_quantity),
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),

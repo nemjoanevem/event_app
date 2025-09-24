@@ -67,4 +67,9 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function scopeConfirmed($q) 
+    { 
+        return $q->where('status', 'confirmed'); 
+    }
 }

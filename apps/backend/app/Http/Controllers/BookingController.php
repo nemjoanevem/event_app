@@ -9,6 +9,7 @@ use App\Http\Resources\BookingResource;
 use App\Models\Event;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
+use \Illuminate\Http\Response;
 
 
 class BookingController extends Controller
@@ -18,6 +19,15 @@ class BookingController extends Controller
         //
     }
 
+    /**
+     * Display a listing of bookings.
+     *
+     * Handles the incoming request to retrieve a collection of bookings,
+     * applying any filters or pagination as specified in the BookingIndexRequest.
+     *
+     * @param  BookingIndexRequest  $request  The request instance containing validation and filter data.
+     * @return AnonymousResourceCollection    A collection of booking resources.
+     */
     public function index(BookingIndexRequest $request): AnonymousResourceCollection
     {
         $user = $request->user();
@@ -29,7 +39,14 @@ class BookingController extends Controller
     /**
      * Create a booking for an event (guests allowed).
      */
-    public function store(BookingStoreRequest $request, Event $event)
+    /**
+     * Handles the storage of a new booking for the specified event.
+     *
+     * @param  BookingStoreRequest  $request  The validated request containing booking data.
+     * @param  Event  $event  The event for which the booking is being made.
+     * @return \Illuminate\Http\Response
+     */
+    public function store(BookingStoreRequest $request, Event $event): Response
     {
         // No authorize() here because guests can book.
         $booking = $this->service->create(

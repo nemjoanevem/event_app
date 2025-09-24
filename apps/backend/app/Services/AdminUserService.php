@@ -16,24 +16,12 @@ class AdminUserService
     {
         $q = User::query()->orderByDesc('created_at');
 
-        // Search by name/email (PostgreSQL-friendly)
         if (!empty($filters['q'])) {
             $term = $filters['q'];
-            $like = $this->likeOperator();
-            $q->where(function ($w) use ($term, $like) {
-                $w->where('name', $like, "%{$term}%")
-                  ->orWhere('email', $like, "%{$term}%");
+            $q->where(function ($w) use ($term) {
+                $w->where('name', 'ilike', "%{$term}%")
+                  ->orWhere('email', 'ilike', "%{$term}%");
             });
-        }
-
-        // Filter by role
-        if (!empty($filters['role'])) {
-            $q->where('role', $filters['role']);
-        }
-
-        // Filter by enabled
-        if (array_key_exists('enabled', $filters) && $filters['enabled'] !== null) {
-            $q->where('enabled', (bool) $filters['enabled']);
         }
 
         return $q->paginate($filters['per_page'] ?? 15);
@@ -71,10 +59,5 @@ class AdminUserService
         $target->save();
 
         return $target->fresh();
-    }
-
-    private function likeOperator(): string
-    {
-        return \DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
 }

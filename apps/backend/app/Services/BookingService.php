@@ -12,18 +12,15 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BookingService
 {
-
     public function list(User $user, array $filters = []): LengthAwarePaginator
     {
         $q = Booking::query()
             ->with(['event:id,title,starts_at', 'user:id,name,email'])
             ->orderByDesc('id');
 
-        // Scope by role
-        if ($user->isAdmin()) {
-            // admins see everything
-        } else {
-            // users/organizers see their own bookings (booked as themselves)
+        // Role-based scoping
+        if (! $user->isAdmin()) {
+            // Users/organizers see their own bookings only
             $q->where('user_id', $user->id);
         }
 
@@ -50,7 +47,7 @@ class BookingService
     }
 
     /**
-     * Create a booking under transaction and row-level lock on the event.
+     * Create a booking inside a transaction with a row-level lock on the event.
      *
      * Rules:
      * - Event must be published and in the future.
@@ -60,33 +57,34 @@ class BookingService
      */
     public function create(Event $event, ?User $user, array $data): Booking
     {
-        $quantity = (int) ($data['quantity'] ?? 1);
-        $guestName = $data['guest_name'] ?? null;
+        $quantity   = (int) ($data['quantity'] ?? 1);
+        $guestName  = $data['guest_name']  ?? null;
         $guestEmail = $data['guest_email'] ?? null;
 
         return DB::transaction(function () use ($event, $user, $quantity, $guestName, $guestEmail) {
-            // Lock the event row to serialize concurrent bookings for the same event.
             /** @var Event $locked */
-            $locked = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $locked = Event::query()
+                ->lockForUpdate()
+                ->findOrFail($event->id);
 
-            // 1) Time/status guard: only published & future events are bookable
-            if ($locked->status !== 'published' || !$locked->starts_at->isFuture()) {
+            // 1) Time/status guard
+            if (! $locked->isBookableNow()) {
                 throw ValidationException::withMessages([
                     'event' => __('bookings.not_bookable_now'),
                 ]);
             }
 
-            // 2) Per-identity quota check
-            $remainingQuota = $this->remainingQuota($locked, $user, $guestEmail);
+            // 2) Per-identity quota
+            $remainingQuota = $locked->remainingQuotaForIdentity($user?->id, $guestEmail);
             if ($quantity > $remainingQuota) {
                 throw ValidationException::withMessages([
                     'quantity' => __('bookings.quota_exceeded', ['remaining' => $remainingQuota]),
                 ]);
             }
 
-            // 3) Capacity check (if limited)
-            if (!is_null($locked->capacity)) {
-                $available = $this->availableSeats($locked);
+            // 3) Capacity guard (if limited)
+            if (! is_null($locked->capacity)) {
+                $available = $locked->availableSeats();
                 if ($quantity > $available) {
                     throw ValidationException::withMessages([
                         'quantity' => __('bookings.capacity_exceeded', ['available' => $available]),
@@ -94,8 +92,8 @@ class BookingService
                 }
             }
 
-            // 4) Compute total price
-            $unit = $locked->price ?? 0;
+            // 4) Price
+            $unit  = $locked->price ?? 0;
             $total = (string) number_format($unit * $quantity, 2, '.', '');
 
             // 5) Create booking
@@ -112,53 +110,5 @@ class BookingService
 
             return $booking->fresh(['event', 'user']);
         });
-    }
-
-    /**
-     * Remaining per-identity quota for this event.
-     */
-    protected function remainingQuota(Event $event, ?User $user, ?string $guestEmail): int
-    {
-        $max = (int) ($event->max_tickets_per_user ?? 0);
-        if ($max <= 0) {
-            return 0;
-        }
-
-        $already = $this->bookedQuantityForIdentity($event, $user, $guestEmail);
-
-        return max(0, $max - $already);
-    }
-
-    /**
-     * Sum of already-booked (confirmed) quantity by identity for this event.
-     */
-    protected function bookedQuantityForIdentity(Event $event, ?User $user, ?string $guestEmail): int
-    {
-        $q = $event->bookings()->where('status', 'confirmed');
-
-        if ($user) {
-            $q->where('user_id', $user->id);
-        } else {
-            // Guests identified by email
-            $q->whereNull('user_id')->where('guest_email', $guestEmail);
-        }
-
-        return (int) $q->sum('quantity');
-    }
-
-    /**
-     * Available seats considering confirmed bookings, or null if unlimited.
-     */
-    protected function availableSeats(Event $event): ?int
-    {
-        if (is_null($event->capacity)) {
-            return null;
-        }
-
-        $booked = (int) $event->bookings()
-            ->where('status', 'confirmed')
-            ->sum('quantity');
-
-        return max(0, $event->capacity - $booked);
     }
 }

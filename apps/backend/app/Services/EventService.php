@@ -15,10 +15,9 @@ class EventService
     public function list(?User $user, array $filters = []): LengthAwarePaginator|Collection
     {
         $q = Event::query()
-            ->withCount(['bookings as booked_quantity' => function ($w) {
-                $w->where('status', 'confirmed')
-                ->select(\DB::raw('coalesce(sum(quantity),0)'));
-            }])
+            ->withSum(['bookings as booked_quantity' => function ($q) {
+                $q->where('status', 'confirmed');
+            }], 'quantity')
             // Date range filter on starts_at
             ->when(!empty($filters['from']) || !empty($filters['to']), function ($qq) use ($filters) {
                 $from = !empty($filters['from']) ? \Carbon\Carbon::parse($filters['from'])->startOfDay() : null;
