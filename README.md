@@ -138,7 +138,7 @@ This will:
 
 ---
 
-## Known limitations (as coded)
+## Known limitations
 - Payments are **not** implemented; bookings compute `total_price` if `events.price` is set, but there’s no gateway.
 - Email verification & password reset flows are not wired into the UI (Laravel scaffolding is present for resets).
 - No file uploads/images for events.
