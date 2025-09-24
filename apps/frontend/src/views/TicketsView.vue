@@ -155,7 +155,13 @@ function syncQuery() {
 async function fetchTickets() {
   loading.value = true
   try {
-    const { data } = await http.get('/bookings', { params: { page: page.value, q: q.value || undefined, event_id: eventId.value || undefined } })
+    const { data } = await http.get('/bookings', { 
+      params: { 
+        page: page.value, 
+        q: q.value || undefined, 
+        event_id: eventId.value || undefined 
+      } 
+    })
     tickets.value = data.data || data || []
     meta.value = data.meta || null
   } finally {

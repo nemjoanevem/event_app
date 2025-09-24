@@ -6,15 +6,22 @@ export type ErrorContext = 'login' | 'register' | 'generic';
 export type ValidationErrors = Record<string, string[]>;
 
 /** Safely gets the first validation message from Laravel's { errors: { field: [msg] } } shape */
-function firstValidationMessage(errors: unknown): string | undefined {
-  if (errors && typeof errors === 'object') {
-    for (const [_, arr] of Object.entries(errors as Record<string, unknown>)) {
-      if (Array.isArray(arr) && arr.length && typeof arr[0] === 'string') {
-        return arr[0] as string;
-      }
+function firstErrorMessage(errors: unknown): string | undefined {
+  if (!errors || typeof errors !== 'object') return undefined
+  console.log("firstErrorMessage errors:", errors);
+  for (const value of Object.values(errors as Record<string, unknown>)) {
+    console.log("firstErrorMessage value:", value);
+    if (Array.isArray(value)) {
+      const firstString = value.find(v => typeof v === 'string') as string | undefined
+      if (firstString && firstString.trim()) return firstString.trim()
+    } else if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    } else if (typeof value === 'object' && value) {
+      const nested = firstErrorMessage(value)
+      if (nested) return nested
     }
   }
-  return undefined;
+  return undefined
 }
 
 export function parseApiError(err: unknown, context: ErrorContext = 'generic'): string {
@@ -22,22 +29,17 @@ export function parseApiError(err: unknown, context: ErrorContext = 'generic'): 
   if (!axios.isAxiosError(err)) return 'errors.network';
 
   const ax = err as AxiosError<any>;
+
+  if ((ax as any).code === 'ECONNABORTED') return 'errors.timeout'
+
+  if (!ax.response) return 'errors.network'
+
   const status = ax.response?.status;
   const data = ax.response?.data;
 
-  // Timeout
-  if ((ax as any).code === 'ECONNABORTED') return 'errors.timeout';
-
-  // 422 validation (Laravel)
-  if (status === 422) {
-    // Prefer the first server-provided validation message, if present
-    const msg =
-      firstValidationMessage(data?.errors) ||
-      (typeof data?.message === 'string' ? data.message : undefined);
-
-    // If you prefer strict i18n keys only, return 'validation.failed' instead of msg
-    return msg || 'validation.failed';
-  }
+  console.log("fromErrors start");
+  const fromErrors = firstErrorMessage(data?.errors)
+  if (fromErrors) return fromErrors
 
   // 419 CSRF / session expired
   if (status === 419) return 'errors.csrf';

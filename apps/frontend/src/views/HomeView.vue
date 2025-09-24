@@ -317,6 +317,7 @@ import { http } from '@/lib/http'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/date';
+import { parseApiError } from '@/lib/errors';
 
 interface EventItem {
   id: number
@@ -431,7 +432,6 @@ async function fetchEvents() {
       }
     })
     events.value = data.data || []
-    console.log(events.value)
     meta.value = data.meta || null
   } finally {
     loading.value = false
@@ -529,19 +529,25 @@ function closeEventDialog() {
 
 async function saveEvent() {
   // NOTE: Frontend wiring; backend validation/errors not yet mapped to UI
-  const payload = {
-    title: form.value.title,
-    starts_at: new Date(form.value.startsAt).toISOString(),
-    location: form.value.location || null,
-    category: form.value.category || null,
-    capacity: form.value.capacity || null,
-    price: form.value.price ?? null,
-    description: form.value.description || null,
-  }
-  if (editing.value) {
-    await http.put(`/events/${editing.value.id}`, payload)
-  } else {
-    await http.post('/events', payload)
+  try {
+    const payload = {
+      title: form.value.title,
+      starts_at: new Date(form.value.startsAt).toISOString(),
+      location: form.value.location || null,
+      category: form.value.category || null,
+      capacity: form.value.capacity || null,
+      price: form.value.price ?? null,
+      description: form.value.description || null,
+    }
+    if (editing.value) {
+      await http.put(`/events/${editing.value.id}`, payload)
+    } else {
+      await http.post('/events', payload)
+    }
+  } catch (err) {
+    // toast error?
+    alert( parseApiError(err) )
+    return
   }
   closeEventDialog()
   fetchEvents()
@@ -549,13 +555,23 @@ async function saveEvent() {
 
 // ——— Status / Delete ———
 async function changeStatus(e: EventItem, status: string) {
-  await http.patch(`/events/${e.id}/status`, { status })
+  try{
+    await http.patch(`/events/${e.id}/status`, { status })
+  }catch (err) {
+    // toast error?
+    alert( parseApiError(err) )
+  }
   fetchEvents()
 }
 
 async function confirmDelete(e: EventItem) {
   if (window.confirm(String($t('home.confirmDelete')))) {
-    await http.delete(`/events/${e.id}`)
+    try {
+      await http.delete(`/events/${e.id}`)
+    } catch (err) {
+      // toast error?
+      alert( parseApiError(err) )
+    } 
     fetchEvents()
   }
 }
@@ -589,8 +605,7 @@ async function submitBooking() {
     bookingSuccess.value = $t('home.bookingSuccess', { amount }) as string
     setTimeout(() => { bookingSuccess.value = '' }, 4000)
   } catch (err: any) {
-    const data = err?.response?.data
-    bookingError.value = data?.message || String($t('home.bookingError'))
+    bookingError.value = parseApiError(err) || String($t('home.bookingError'))
   }
 }
 
