@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Exceptions\UserDisabledException;
 
 class Handler extends \Illuminate\Foundation\Exceptions\Handler
 {
@@ -107,6 +108,9 @@ class Handler extends \Illuminate\Foundation\Exceptions\Handler
             // Database errors are 500, but we don't want to leak details
             $status = 500;
             $message = trans('errors.500');
+        } elseif ($e instanceof UserDisabledException) {
+            $status = 423;
+            $message = trans('errors.423');
         }
 
         return response()->json([
