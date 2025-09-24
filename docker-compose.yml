@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:14
     environment:
-      POSTGRES_USER: eventhub
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: eventhub
-    ports: ["5432:5432"]
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports: ["${DB_PORT}:5432"]
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./db-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eventhub"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -21,23 +21,31 @@ services:
     volumes:
       - ./apps/backend:/var/www
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT}:8000"
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: ${APP_URL}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
     command: |
       bash -lc "
         apt-get update && apt-get install -y libpq-dev postgresql-client git unzip &&
         docker-php-ext-install pdo pdo_pgsql &&
         curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
-        composer install --no-interaction &&
-        php artisan key:generate &&
-
-        until pg_isready -h db -p 5432 -U eventhub; do echo 'waiting for db...'; sleep 2; done &&
-
+        [ -f .env ] || cp .env.example .env &&
+        php artisan key:generate --force &&
+        until pg_isready -h db -p 5432 -U ${POSTGRES_USER}; do echo 'waiting for db...'; sleep 2; done &&
+        composer install --no-interaction --prefer-dist --no-progress &&
         php artisan migrate --force &&
         php artisan db:seed --force &&
-
         php artisan serve --host=0.0.0.0 --port=8000
       "
 
@@ -47,10 +55,15 @@ services:
     volumes:
       - ./apps/frontend:/app
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT}:5173"
     environment:
-      - VITE_API_URL=http://localhost:8000/api
-    command: bash -lc "npm install && npm run dev -- --host"
+      VITE_API_URL: ${VITE_API_URL}
+    command: |
+      bash -lc "
+        [ -f .env ] || { [ -f .env.example ] && cp .env.example .env || true; } &&
+        npm install &&
+        npm run dev -- --host
+      "
 
 volumes:
   db_data:
