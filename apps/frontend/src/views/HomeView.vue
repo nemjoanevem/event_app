@@ -98,6 +98,15 @@
                     {{ $t('home.edit') }}
                   </button>
 
+                  <!-- View bookings for admin or organizer(owner) -->
+                  <button
+                    v-if="canViewBookingsFor(e)"
+                    class="px-3 py-1.5 rounded-lg border hover:bg-gray-50"
+                    @click="openEventBookings(e.id)"
+                  >
+                    {{ $t('home.viewBookings') }}
+                  </button>
+
                   <!-- Status change for admin or organizer(owner) -->
                   <div v-if="canEdit(e)" class="relative">
                     <select
@@ -320,7 +329,7 @@ interface EventItem {
   price?: string | number | null
   availableSeats?: number | null
   maxTicketsPerUser?: number | null
-  userId?: number // owner (may be absent in some payloads)
+  createdBy: number
 }
 
 const auth = useAuthStore()
@@ -348,7 +357,7 @@ const canCreate = computed(() => auth.user?.role === 'organizer' || auth.user?.r
 const canEdit = (e: EventItem) => {
   const role = auth.user?.role
   if (role === 'admin') return true
-  if (role === 'organizer' && e.userId && auth.user?.id === e.userId) return true
+  if (role === 'organizer' && e.createdBy && auth.user?.id === e.createdBy) return true
   return false
 }
 
@@ -422,6 +431,7 @@ async function fetchEvents() {
       }
     })
     events.value = data.data || []
+    console.log(events.value)
     meta.value = data.meta || null
   } finally {
     loading.value = false
@@ -582,6 +592,15 @@ async function submitBooking() {
     const data = err?.response?.data
     bookingError.value = data?.message || String($t('home.bookingError'))
   }
+}
+
+function canViewBookingsFor(eventItem: { createdBy: number }) {
+  if (!auth.user) return false
+  return auth.user.role === 'admin' || (auth.user.role === 'organizer' && auth.user.id === eventItem.createdBy)
+}
+
+function openEventBookings(eventId: number) {
+  router.push({ name: 'tickets', query: { event_id: eventId } })
 }
 </script>
 

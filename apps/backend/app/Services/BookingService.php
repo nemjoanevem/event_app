@@ -19,9 +19,21 @@ class BookingService
             ->orderByDesc('id');
 
         // Role-based scoping
-        if (! $user->isAdmin()) {
-            // Users/organizers see their own bookings only
+        if ($user->isAdmin()) {
+            // Admins see all bookings
+        } elseif ($user->isOrganizer()) {
+            // Organizers see bookings for their events only
+            $q->whereHas('event', function (Builder $qe) use ($user) {
+                $qe->where('created_by', $user->id);
+            });
+        } else {
+            // Regular users see their own bookings only
+            // Guests (no user) see no bookings
             $q->where('user_id', $user->id);
+        }
+
+        if (!empty($filters['event_id'])) {
+            $q->where('event_id', $filters['event_id']);
         }
 
         // Search by event title OR user/guest name/email

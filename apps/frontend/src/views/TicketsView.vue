@@ -41,8 +41,8 @@
                 <th class="px-4 py-3 font-medium">{{ $t('tickets.quantity') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('tickets.totalPrice') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('tickets.startsAt') }}</th>
-                <th v-if="isAdmin" class="px-4 py-3 font-medium">{{ $t('tickets.userName') }}</th>
-                <th v-if="isAdmin" class="px-4 py-3 font-medium">{{ $t('tickets.userEmail') }}</th>
+                <th v-if="showUserNameAndEmail()" class="px-4 py-3 font-medium">{{ $t('tickets.userName') }}</th>
+                <th v-if="showUserNameAndEmail()" class="px-4 py-3 font-medium">{{ $t('tickets.userEmail') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -51,8 +51,8 @@
                 <td class="px-4 py-3">{{ b.quantity }}</td>
                 <td class="px-4 py-3">{{ b.totalPrice }}</td>
                 <td class="px-4 py-3">{{ formatDate(b.startsAt) }}</td>
-                <td v-if="isAdmin" class="px-4 py-3">{{ b.name || '—' }}</td>
-                <td v-if="isAdmin" class="px-4 py-3">{{ b.email || '—' }}</td>
+                <td v-if="showUserNameAndEmail()" class="px-4 py-3">{{ b.name || '—' }}</td>
+                <td v-if="showUserNameAndEmail()" class="px-4 py-3">{{ b.email || '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -119,7 +119,19 @@ const page = ref<number>(Number(route.query.page ?? 1))
 const tickets = ref<TicketRow[]>([])
 const meta = ref<any>(null)
 const loading = ref(false)
+
+const eventId = ref<number | null>(null)
+
 let debounce: number | undefined
+
+function showUserNameAndEmail() {
+  //If user is Admin OR user is organizer
+  if( isAdmin.value || auth.user?.role === 'organizer' ) {
+    console.log("isAdmin or isOrganizer");
+    return true
+  }
+  return false
+}
 
 function onQueryInput() {
   window.clearTimeout(debounce)
@@ -143,15 +155,18 @@ function syncQuery() {
 async function fetchTickets() {
   loading.value = true
   try {
-    const { data } = await http.get('/bookings', { params: { page: page.value, q: q.value || undefined } })
+    const { data } = await http.get('/bookings', { params: { page: page.value, q: q.value || undefined, event_id: eventId.value || undefined } })
     tickets.value = data.data || data || []
     meta.value = data.meta || null
   } finally {
     loading.value = false
   }
 }
-
-onMounted(fetchTickets)
+onMounted(() => {
+  const q = route.query.event_id
+  eventId.value = q ? Number(q) : null
+  fetchTickets()
+})
 watch(() => route.query.page, (val) => {
   const p = Number(val || 1)
   if (p !== page.value) {

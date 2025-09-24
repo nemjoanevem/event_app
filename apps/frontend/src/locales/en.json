@@ -46,6 +46,8 @@
     "bookingSuccess": "Successfully booked ticket! Total price: {amount}",
     "from": "From",
     "to": "To",
+    "viewBookings": "View bookings",
+    "noEventsCreated": "You haven't created any events yet.",
     "fields": {
       "title": "Title",
       "startsAt": "Starts at",

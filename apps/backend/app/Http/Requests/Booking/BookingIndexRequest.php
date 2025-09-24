@@ -17,6 +17,7 @@ class BookingIndexRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:200'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'event_id' => ['nullable', 'integer', 'exists:events,id'],
         ];
     }
 }
