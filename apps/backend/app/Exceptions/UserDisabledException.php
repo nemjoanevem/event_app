@@ -8,6 +8,6 @@ class UserDisabledException extends HttpException
 {
     public function __construct(string $message = null)
     {
-        parent::__construct(423, $message ?: trans('errors.user_disabled'));
+        parent::__construct(423, $message ?: trans('errors.423'));
     }
 }

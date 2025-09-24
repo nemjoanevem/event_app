@@ -7,13 +7,14 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class EventFeatureTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** 
+    /**
      * Helper: create user with a specific role.
      */
     protected function makeUser(RoleEnum $role): User
@@ -23,7 +24,7 @@ class EventFeatureTest extends TestCase
         ]);
     }
 
-    /** 
+    /**
      * Helper: create event with owner and status.
      */
     protected function makeEvent(User $owner, string $status = 'published', ?Carbon $startsAt = null, array $overrides = []): Event
@@ -39,17 +40,13 @@ class EventFeatureTest extends TestCase
 
     public function test_guest_can_list_published_but_not_drafts_and_cancelled(): void
     {
-        // Arrange
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
         $this->makeEvent($organizer, 'published');
         $this->makeEvent($organizer, 'cancelled');
         $this->makeEvent($organizer, 'draft');
 
-        // Act
-        $res = $this->withHeaders(['Accept' => 'application/json'])
-            ->get('/events');
+        $res = $this->getJson('/api/events');
 
-        // Assert
         $res->assertOk()
             ->assertJsonMissing(['status' => 'draft'])
             ->assertJsonFragment(['status' => 'published'])
@@ -58,50 +55,39 @@ class EventFeatureTest extends TestCase
 
     public function test_organizer_sees_published_and_own_cancelled_and_own_drafts_only(): void
     {
-        // Arrange
-        $organizerA = $this->makeUser(\App\Enums\RoleEnum::ORGANIZER);
-        $organizerB = $this->makeUser(\App\Enums\RoleEnum::ORGANIZER);
+        $organizerA = $this->makeUser(RoleEnum::ORGANIZER);
+        $organizerB = $this->makeUser(RoleEnum::ORGANIZER);
 
-        // Organizer A events
         $this->makeEvent($organizerA, 'published');
         $this->makeEvent($organizerA, 'cancelled');
         $this->makeEvent($organizerA, 'draft');
 
-        // Organizer B draft (should NOT be visible to A)
         $this->makeEvent($organizerB, 'cancelled');
         $this->makeEvent($organizerB, 'draft');
 
-        // Act
-        $res = $this->actingAs($organizerA, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->get('/events')
-            ->assertOk();
+        Sanctum::actingAs($organizerA);
 
-        // Parse payload for robust checks
+        $res = $this->getJson('/api/events')->assertOk();
+
         $items = collect($res->json('data') ?? []);
 
-        // Assert published & cancelled are present (for anyone)
         $this->assertTrue($items->contains(fn ($e) => ($e['status'] ?? null) === 'published'));
 
-        // Assert A's own cancelled is visible
         $this->assertTrue(
             $items->contains(fn ($e) => ($e['status'] ?? null) === 'cancelled' && ($e['createdBy'] ?? null) === $organizerA->id),
             'Organizer should see own cancelled event.'
         );
 
-        // Assert B's cancelled is NOT visible
         $this->assertFalse(
             $items->contains(fn ($e) => ($e['status'] ?? null) === 'cancelled' && ($e['createdBy'] ?? null) === $organizerB->id),
             "Organizer should NOT see other organizer's cancelled event."
         );
 
-        // Assert A's own draft is visible
         $this->assertTrue(
             $items->contains(fn ($e) => ($e['status'] ?? null) === 'draft' && ($e['createdBy'] ?? null) === $organizerA->id),
             'Organizer should see own draft.'
         );
 
-        // Assert B's draft is NOT visible
         $this->assertFalse(
             $items->contains(fn ($e) => ($e['status'] ?? null) === 'draft' && ($e['createdBy'] ?? null) === $organizerB->id),
             "Organizer should NOT see other organizer's draft."
@@ -117,9 +103,9 @@ class EventFeatureTest extends TestCase
         $this->makeEvent($org, 'cancelled');
         $this->makeEvent($org, 'draft');
 
-        $res = $this->actingAs($admin, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->get('/events');
+        Sanctum::actingAs($admin);
+
+        $res = $this->getJson('/api/events');
 
         $res->assertOk()
             ->assertJsonFragment(['status' => 'published'])
@@ -134,17 +120,13 @@ class EventFeatureTest extends TestCase
         $cancelled = $this->makeEvent($org, 'cancelled');
         $draft = $this->makeEvent($org, 'draft');
 
-        $this->withHeaders(['Accept' => 'application/json'])
-            ->get("/events/{$published->id}")
+        $this->getJson("/api/events/{$published->id}")
             ->assertOk();
 
-        $this->withHeaders(['Accept' => 'application/json'])
-            ->get("/events/{$cancelled->id}")
+        $this->getJson("/api/events/{$cancelled->id}")
             ->assertNotFound();
 
-        // Draft should be hidden from guests -> 404
-        $this->withHeaders(['Accept' => 'application/json'])
-            ->get("/events/{$draft->id}")
+        $this->getJson("/api/events/{$draft->id}")
             ->assertNotFound();
     }
 
@@ -153,7 +135,6 @@ class EventFeatureTest extends TestCase
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
         $user = $this->makeUser(RoleEnum::USER);
 
-        // Organizer can create
         $payload = [
             'title' => 'My Event',
             'starts_at' => now()->addDays(5)->toISOString(),
@@ -161,16 +142,15 @@ class EventFeatureTest extends TestCase
             'max_tickets_per_user' => 5,
         ];
 
-        $this->actingAs($organizer, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->post('/events', $payload)
+        Sanctum::actingAs($organizer);
+
+        $this->postJson('/api/events', $payload)
             ->assertOk()
             ->assertJsonFragment(['title' => 'My Event']);
 
-        // User cannot create
-        $this->actingAs($user, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->post('/events', $payload)
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/events', $payload)
             ->assertForbidden();
     }
 
@@ -183,23 +163,18 @@ class EventFeatureTest extends TestCase
         $ownEvent = $this->makeEvent($organizerA, 'draft');
         $otherEvent = $this->makeEvent($organizerB, 'draft');
 
-        // Own event: OK
-        $this->actingAs($organizerA, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->put("/events/{$ownEvent->id}", ['title' => 'Updated'])
+        Sanctum::actingAs($organizerA);
+
+        $this->putJson("/api/events/{$ownEvent->id}", ['title' => 'Updated'])
             ->assertOk()
             ->assertJsonFragment(['title' => 'Updated']);
 
-        // Other's event: forbidden
-        $this->actingAs($organizerA, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->put("/events/{$otherEvent->id}", ['title' => 'Hack'])
+        $this->putJson("/api/events/{$otherEvent->id}", ['title' => 'Hack'])
             ->assertForbidden();
 
-        // Admin can update any
-        $this->actingAs($admin, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->put("/events/{$otherEvent->id}", ['title' => 'Admin Edit'])
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/events/{$otherEvent->id}", ['title' => 'Admin Edit'])
             ->assertOk()
             ->assertJsonFragment(['title' => 'Admin Edit']);
     }
@@ -213,36 +188,30 @@ class EventFeatureTest extends TestCase
         $ownEvent = $this->makeEvent($organizerA, 'draft');
         $otherEvent = $this->makeEvent($organizerB, 'draft');
 
-        // Own delete OK
-        $this->actingAs($organizerA, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->delete("/events/{$ownEvent->id}")
+        Sanctum::actingAs($organizerA);
+
+        $this->deleteJson("/api/events/{$ownEvent->id}")
             ->assertOk();
 
-        // Other's delete forbidden
-        $this->actingAs($organizerA, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->delete("/events/{$otherEvent->id}")
+        $this->deleteJson("/api/events/{$otherEvent->id}")
             ->assertForbidden();
 
-        // Admin delete OK
-        $this->actingAs($admin, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->delete("/events/{$otherEvent->id}")
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson("/api/events/{$otherEvent->id}")
             ->assertOk();
     }
 
     public function test_cannot_publish_past_event_via_status_endpoint(): void
     {
-        // Past event: publishing should fail (422)
         $admin = $this->makeUser(RoleEnum::ADMIN);
         $org = $this->makeUser(RoleEnum::ORGANIZER);
 
         $pastDraft = $this->makeEvent($org, 'draft', now()->subDays(2));
 
-        $this->actingAs($admin, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->patch("/events/{$pastDraft->id}/status", ['status' => 'published'])
+        Sanctum::actingAs($admin);
+
+        $this->patchJson("/api/events/{$pastDraft->id}/status", ['status' => 'published'])
             ->assertStatus(422);
     }
 
@@ -252,9 +221,9 @@ class EventFeatureTest extends TestCase
         $org = $this->makeUser(RoleEnum::ORGANIZER);
         $future = $this->makeEvent($org, 'published', now()->addDays(7));
 
-        $this->actingAs($admin, 'web')
-            ->withHeaders(['Accept' => 'application/json'])
-            ->patch("/events/{$future->id}/status", ['status' => 'cancelled'])
+        Sanctum::actingAs($admin);
+
+        $this->patchJson("/api/events/{$future->id}/status", ['status' => 'cancelled'])
             ->assertOk()
             ->assertJsonFragment(['status' => 'cancelled']);
     }

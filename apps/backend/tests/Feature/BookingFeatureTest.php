@@ -6,7 +6,7 @@ use App\Enums\RoleEnum;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class BookingFeatureTest extends TestCase
@@ -14,7 +14,7 @@ class BookingFeatureTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Create a user with given role.
+     * Create a user with the given role.
      */
     protected function makeUser(RoleEnum $role): User
     {
@@ -41,15 +41,15 @@ class BookingFeatureTest extends TestCase
     }
 
     /**
-     * POST /events/{event}/bookings helper (optionally acting as a user).
+     * POST /api/events/{event}/bookings helper (optionally acting as a user).
      */
     protected function postBooking(Event $event, array $payload, ?User $as = null)
     {
-        $req = $this->withHeaders(['Accept' => 'application/json']);
         if ($as) {
-            $req = $this->actingAs($as, 'web')->withHeaders(['Accept' => 'application/json']);
+            Sanctum::actingAs($as);
         }
-        return $req->post("/events/{$event->id}/bookings", $payload);
+
+        return $this->postJson("/api/events/{$event->id}/bookings", $payload);
     }
 
     public function test_guest_can_create_booking_for_published_future_event(): void
@@ -76,7 +76,7 @@ class BookingFeatureTest extends TestCase
                     'eventId',
                     'quantity',
                     'totalPrice',
-                    'startAt',
+                    'startsAt',
                     'createdAt',
                 ],
                 'message',
@@ -84,7 +84,7 @@ class BookingFeatureTest extends TestCase
             ->assertJsonFragment([
                 'eventId' => $event->id,
                 'quantity' => 3,
-                'totalPrice' => '37.50', // 12.50 * 3
+                'totalPrice' => '37.50',
             ]);
     }
 
@@ -93,7 +93,6 @@ class BookingFeatureTest extends TestCase
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
         $event = $this->makeFutureEvent($organizer);
 
-        // Missing guest_name and guest_email -> 422 with errors
         $res = $this->postBooking($event, ['quantity' => 1]);
 
         $res->assertStatus(422)
@@ -104,7 +103,6 @@ class BookingFeatureTest extends TestCase
     {
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
 
-        // Draft event (future)
         $draft = $this->makeFutureEvent($organizer, ['status' => 'draft']);
         $this->postBooking($draft, [
             'quantity' => 1,
@@ -112,7 +110,6 @@ class BookingFeatureTest extends TestCase
             'guest_email' => 'guest@x.com',
         ])->assertStatus(422)->assertJsonStructure(['errors' => ['event']]);
 
-        // Cancelled event (future)
         $cancelled = $this->makeFutureEvent($organizer, ['status' => 'cancelled']);
         $this->postBooking($cancelled, [
             'quantity' => 1,
@@ -120,7 +117,6 @@ class BookingFeatureTest extends TestCase
             'guest_email' => 'guest@x.com',
         ])->assertStatus(422)->assertJsonStructure(['errors' => ['event']]);
 
-        // Published but past
         $past = $this->makeFutureEvent($organizer, ['starts_at' => now()->subDay()]);
         $this->postBooking($past, [
             'quantity' => 1,
@@ -140,17 +136,14 @@ class BookingFeatureTest extends TestCase
             'price' => 10.00,
         ]);
 
-        // First booking: 3 -> OK
         $this->postBooking($event, ['quantity' => 3], $user)
             ->assertOk()
             ->assertJsonFragment(['quantity' => 3, 'totalPrice' => '30.00']);
 
-        // Second booking: 3 -> should fail (remaining = 2)
         $this->postBooking($event, ['quantity' => 3], $user)
             ->assertStatus(422)
             ->assertJsonStructure(['errors' => ['quantity']]);
 
-        // Third booking: 2 -> OK (exactly remaining)
         $this->postBooking($event, ['quantity' => 2], $user)
             ->assertOk()
             ->assertJsonFragment(['quantity' => 2, 'totalPrice' => '20.00']);
@@ -167,17 +160,14 @@ class BookingFeatureTest extends TestCase
 
         $guest = ['guest_name' => 'G', 'guest_email' => 'g@example.com'];
 
-        // First: 3 -> OK
         $this->postBooking($event, array_merge(['quantity' => 3], $guest))
             ->assertOk()
             ->assertJsonFragment(['quantity' => 3, 'totalPrice' => '15.00']);
 
-        // Second: 2 -> fail (remaining = 1)
         $this->postBooking($event, array_merge(['quantity' => 2], $guest))
             ->assertStatus(422)
             ->assertJsonStructure(['errors' => ['quantity']]);
 
-        // Third: 1 -> OK
         $this->postBooking($event, array_merge(['quantity' => 1], $guest))
             ->assertOk()
             ->assertJsonFragment(['quantity' => 1, 'totalPrice' => '5.00']);
@@ -188,25 +178,22 @@ class BookingFeatureTest extends TestCase
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
         $event = $this->makeFutureEvent($organizer, [
             'capacity' => 5,
-            'max_tickets_per_user' => 10, // make quota non-limiting
+            'max_tickets_per_user' => 10,
             'price' => 1.00,
         ]);
 
-        // Fill 4 seats
         $this->postBooking($event, [
             'quantity' => 4,
             'guest_name' => 'A',
             'guest_email' => 'a@example.com',
         ])->assertOk();
 
-        // Try to book 2 more (only 1 left) -> 422
         $this->postBooking($event, [
             'quantity' => 2,
             'guest_name' => 'B',
             'guest_email' => 'b@example.com',
         ])->assertStatus(422)->assertJsonStructure(['errors' => ['quantity']]);
 
-        // Book the last 1 -> OK
         $this->postBooking($event, [
             'quantity' => 1,
             'guest_name' => 'C',
@@ -223,7 +210,6 @@ class BookingFeatureTest extends TestCase
             'price' => 2.00,
         ]);
 
-        // Two separate identities book 1 each -> 2/3 filled
         $this->postBooking($event, [
             'quantity' => 1,
             'guest_name' => 'X',
@@ -236,14 +222,12 @@ class BookingFeatureTest extends TestCase
             'guest_email' => 'y@example.com',
         ])->assertOk();
 
-        // Third tries to book 2 -> only 1 left -> 422
         $this->postBooking($event, [
             'quantity' => 2,
             'guest_name' => 'Z',
             'guest_email' => 'z@example.com',
         ])->assertStatus(422)->assertJsonStructure(['errors' => ['quantity']]);
 
-        // Third books 1 -> OK (now 3/3)
         $this->postBooking($event, [
             'quantity' => 1,
             'guest_name' => 'Z',
@@ -255,7 +239,7 @@ class BookingFeatureTest extends TestCase
     {
         $organizer = $this->makeUser(RoleEnum::ORGANIZER);
         $event = $this->makeFutureEvent($organizer, [
-            'price' => 3.4, // 3.40
+            'price' => 3.4,
             'capacity' => 10,
             'max_tickets_per_user' => 10,
         ]);

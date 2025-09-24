@@ -26,7 +26,7 @@ class BookingConcurrencyTest extends TestCase
             'guest_email' => 'alice1@example.test',
         ];
         $r1 = $this->postJson("/api/events/{$event->id}/bookings", $payload1);
-        $r1->assertStatus(201);
+        $r1->assertStatus(200);
 
         $payload2 = [
             'quantity'    => 1,

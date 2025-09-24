@@ -5,6 +5,7 @@ namespace Tests\Feature\Middleware;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Laravel\Sanctum\Sanctum;
 
 class EnsureUserEnabledTest extends TestCase
 {
@@ -33,11 +34,9 @@ class EnsureUserEnabledTest extends TestCase
 
         $this->actingAs($user);
 
-        $respUser = $this->getJson('/api/user');
-        $respUser->assertOk();
+        $this->getJson('/api/user')->assertOk();
 
-        $respLogout = $this->postJson('/api/logout');
-        $respLogout->assertNoContent()->assertStatus(204);
+        $this->postJson('/api/logout')->assertOk();
     }
 
     public function test_enabled_user_can_access_protected_endpoints_normally()

@@ -9,7 +9,7 @@ use App\Http\Resources\BookingResource;
 use App\Models\Event;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
-use \Illuminate\Http\Response;
+use Illuminate\Http\Response;
 
 
 class BookingController extends Controller
@@ -46,7 +46,7 @@ class BookingController extends Controller
      * @param  Event  $event  The event for which the booking is being made.
      * @return \Illuminate\Http\Response
      */
-    public function store(BookingStoreRequest $request, Event $event): Response
+    public function store(BookingStoreRequest $request, Event $event): BookingResource
     {
         // No authorize() here because guests can book.
         $booking = $this->service->create(

@@ -48,8 +48,11 @@ class AuthService
     public function logout(): void
     {
         $this->guard()->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        if (request()->hasSession()) {
+            Auth::guard('web')->logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
     }
 
     

@@ -76,7 +76,7 @@ class EventService
 
     public function canView(?User $user, Event $event): bool
     {
-        if (in_array($event->status, ['published', 'cancelled'], true)) {
+        if (in_array($event->status, ['published'], true)) {
             return true; // visible to anyone
         }
         if ($user?->isAdmin()) {

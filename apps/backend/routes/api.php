@@ -27,7 +27,7 @@ Route::get('/events/{event}',  [EventController::class, 'show']);
 Route::post('/events/{event}/bookings', [BookingController::class, 'store']);
 
 // Authenticated
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'enabled'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user',    [AuthController::class, 'user']);
 
