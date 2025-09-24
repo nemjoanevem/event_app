@@ -1,0 +1,2 @@
+CREATE DATABASE app_test OWNER eventhub ENCODING 'UTF8';
+GRANT ALL PRIVILEGES ON DATABASE app_test TO eventhub;
